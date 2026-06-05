@@ -21,7 +21,8 @@ use crate::commands::project::install_target::InstallTarget;
 use crate::commands::project::lock::{LockMode, LockOperation};
 use crate::commands::project::lock_target::LockTarget;
 use crate::commands::project::{
-    ProjectEnvironment, ProjectError, ProjectInterpreter, UniversalState, WorkspacePython,
+    LinkErrorReporting, ProjectEnvironment, ProjectError, ProjectInterpreter, UniversalState,
+    WorkspacePython,
 };
 use crate::commands::{ExitStatus, diagnostics};
 use crate::printer::Printer;
@@ -147,6 +148,7 @@ pub(crate) async fn metadata(
                     Some(false),
                     cache,
                     DryRun::Disabled,
+                    LinkErrorReporting::User,
                     printer,
                 )
                 .await?;
