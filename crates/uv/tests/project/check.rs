@@ -82,8 +82,7 @@ fn check_uses_exact_ty_version_from_lock() -> Result<()> {
             .arg("ty")
             .arg("--no-binary-package")
             .arg("ty")
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+            .arg("--show-version"),
         @"
     success: true
     exit_code: 0
@@ -92,9 +91,7 @@ fn check_uses_exact_ty_version_from_lock() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG `--exclude-newer` is ignored for pinned version `0.0.17`
-    DEBUG Using `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "
     );
 
@@ -131,8 +128,7 @@ fn check_uses_exact_ty_version_from_legacy_dev_dependencies() -> Result<()> {
             .arg("--no-dev")
             .arg("--exclude-newer")
             .arg("2026-02-15T00:00:00Z")
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+            .arg("--show-version"),
         @"
     success: true
     exit_code: 0
@@ -142,9 +138,7 @@ fn check_uses_exact_ty_version_from_legacy_dev_dependencies() -> Result<()> {
     ----- stderr -----
     warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG `--exclude-newer` is ignored for pinned version `0.0.17`
-    DEBUG Using `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "
     );
 
@@ -179,8 +173,7 @@ fn check_uses_applicable_ty_version_from_forked_lock() -> Result<()> {
         context
             .check()
             .arg("--no-dev")
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+            .arg("--show-version"),
         @"
     success: true
     exit_code: 0
@@ -189,9 +182,7 @@ fn check_uses_applicable_ty_version_from_forked_lock() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG `--exclude-newer` is ignored for pinned version `0.0.17`
-    DEBUG Using `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "
     );
 
@@ -219,10 +210,7 @@ fn check_ignores_inactive_ty_declaration() -> Result<()> {
 
     uv_snapshot!(
         context.filters(),
-        context
-            .check()
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+        context.check().arg("--show-version"),
         @"
     success: true
     exit_code: 0
@@ -231,8 +219,7 @@ fn check_ignores_inactive_ty_declaration() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG Resolved `ty@>=0.0, <0.1` to `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "
     );
 
@@ -267,7 +254,9 @@ fn check_rejects_non_registry_ty_source() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency uses the non-registry source `does-not-exist`, but `uv check` can only install standalone `ty` releases by version; use a registry source, `--ty-version`, or the `TY` environment variable
+    error: The active `ty` development dependency uses the non-registry source `does-not-exist`, but `uv check` can only install standalone `ty` releases by version
+
+    hint: Use a registry source, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     context
@@ -291,7 +280,9 @@ fn check_rejects_non_registry_ty_source() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency uses the direct URL `https://example.com/ty.whl`, but `uv check` can only install standalone `ty` releases by version; use a registry requirement, `--ty-version`, or the `TY` environment variable
+    error: The active `ty` development dependency uses the direct URL `https://example.com/ty.whl`, but `uv check` can only install standalone `ty` releases by version
+
+    hint: Use a registry requirement, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     context
@@ -325,7 +316,9 @@ fn check_rejects_non_registry_ty_source() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency requires an existing lockfile when `--no-sync` is used; update `uv.lock`, remove `--no-sync`, or use `--ty-version` or the `TY` environment variable
+    error: The active `ty` development dependency requires an existing lockfile when `--no-sync` is used
+
+    hint: Run `uv lock`, remove `--no-sync`, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     Ok(())
@@ -356,7 +349,9 @@ fn check_active_ty_requires_lock_with_no_sync() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency requires an existing lockfile when `--no-sync` is used; update `uv.lock`, remove `--no-sync`, or use `--ty-version` or the `TY` environment variable
+    error: The active `ty` development dependency requires an existing lockfile when `--no-sync` is used
+
+    hint: Run `uv lock`, remove `--no-sync`, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     Ok(())
@@ -393,7 +388,9 @@ fn check_active_ty_rejects_stale_frozen_lock() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency is not present in the lockfile for the selected Python environment; update `uv.lock`, or use `--ty-version` or the `TY` environment variable
+    error: The active `ty` development dependency is not present in the lockfile for the selected Python environment
+
+    hint: Run `uv lock` to update the lockfile, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     Ok(())
@@ -442,7 +439,9 @@ fn check_virtual_root_does_not_use_member_ty() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    error: The active `ty` development dependency is not present in the lockfile for the selected Python environment; update `uv.lock`, or use `--ty-version` or the `TY` environment variable
+    error: The active `ty` development dependency is not present in the lockfile for the selected Python environment
+
+    hint: Run `uv lock` to update the lockfile, or override the `ty` version using `--ty-version` or the `TY` environment variable
     ");
 
     Ok(())
@@ -484,8 +483,7 @@ fn check_virtual_root_uses_exact_ty_version_from_lock() -> Result<()> {
         context
             .check()
             .arg("--no-sync")
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+            .arg("--show-version"),
         @r###"
     success: true
     exit_code: 0
@@ -494,9 +492,7 @@ fn check_virtual_root_uses_exact_ty_version_from_lock() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG `--exclude-newer` is ignored for pinned version `0.0.17`
-    DEBUG Using `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "###
     );
 
@@ -549,8 +545,7 @@ fn check_member_ty_ignores_virtual_root_dev_dependencies() -> Result<()> {
             .arg("iniconfig")
             .arg("--no-binary-package")
             .arg("iniconfig")
-            .arg("--verbose")
-            .env(EnvVars::RUST_LOG, "uv::commands::project::check::ty=debug"),
+            .arg("--show-version"),
         @"
     success: true
     exit_code: 0
@@ -559,9 +554,7 @@ fn check_member_ty_ignores_virtual_root_dev_dependencies() -> Result<()> {
 
     ----- stderr -----
     warning: `uv check` is experimental and may change without warning. Pass `--preview-features check-command` to disable this warning.
-    DEBUG `--exclude-newer` is ignored for pinned version `0.0.17`
-    DEBUG Using `ty==0.0.17`
-    DEBUG Passing workspace metadata to `ty check` via stdin
+    Using ty 0.0.17
     "
     );
 

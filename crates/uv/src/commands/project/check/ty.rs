@@ -4,7 +4,8 @@ use std::process::Stdio;
 use std::str::FromStr;
 use std::time::Duration;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
+use thiserror::Error;
 use tokio::io::AsyncWriteExt;
 use tokio::process::{ChildStdin, Command};
 use tracing::debug;
@@ -14,6 +15,7 @@ use uv_cache::Cache;
 use uv_client::BaseClientBuilder;
 use uv_configuration::NoSources;
 use uv_normalize::{DEV_DEPENDENCIES, PackageName};
+use uv_pep440::Version;
 use uv_python::{Interpreter, PythonEnvironment};
 use uv_resolver::Lock;
 use uv_workspace::VirtualProject;
@@ -28,7 +30,61 @@ use crate::printer::Printer;
 /// Limit how long uv can block if a version of ty does not consume metadata from stdin.
 const WORKSPACE_METADATA_WRITE_TIMEOUT: Duration = Duration::from_mins(1);
 
-/// An active `ty` declaration in the current project's development dependencies.
+/// An error selecting the `ty` version for `uv check`.
+#[derive(Debug, Error)]
+pub(crate) enum TyVersionError {
+    #[error(
+        "The active `ty` development dependency uses the non-registry source `{source_display}`, but `uv check` can only install standalone `ty` releases by version"
+    )]
+    UnsupportedDeclarationSource { source_display: String },
+    #[error(
+        "The active `ty` development dependency uses the direct URL `{url}`, but `uv check` can only install standalone `ty` releases by version"
+    )]
+    DirectUrl { url: String },
+    #[error(
+        "The active `ty` development dependency is not present in the lockfile for the selected Python environment"
+    )]
+    MissingFromLock,
+    #[error(
+        "The locked `ty` package uses a non-registry source, but `uv check` can only install standalone `ty` releases by version"
+    )]
+    UnsupportedLockedSource,
+    #[error(
+        "The locked `ty` package has no version, but `uv check` can only install standalone `ty` releases by version"
+    )]
+    MissingLockedVersion,
+    #[error(
+        "The active `ty` development dependency requires an existing lockfile when `--no-sync` is used"
+    )]
+    MissingLockfile,
+}
+
+impl uv_errors::Hint for TyVersionError {
+    fn hints(&self) -> uv_errors::Hints<'_> {
+        uv_errors::Hints::from(match self {
+            Self::UnsupportedDeclarationSource { .. }
+            | Self::UnsupportedLockedSource
+            | Self::MissingLockedVersion => {
+                "Use a registry source, or override the `ty` version using `--ty-version` or the `TY` environment variable"
+            }
+            Self::DirectUrl { .. } => {
+                "Use a registry requirement, or override the `ty` version using `--ty-version` or the `TY` environment variable"
+            }
+            Self::MissingFromLock => {
+                "Run `uv lock` to update the lockfile, or override the `ty` version using `--ty-version` or the `TY` environment variable"
+            }
+            Self::MissingLockfile => {
+                "Run `uv lock`, remove `--no-sync`, or override the `ty` version using `--ty-version` or the `TY` environment variable"
+            }
+        })
+    }
+}
+
+/// Evidence of an active `ty` declaration in the current project's development dependencies.
+///
+/// The contained [`PackageName`] is present in the flattened `dev` group for the selected
+/// interpreter, and its effective source has been validated for standalone installation.
+/// Functions accepting this type may rely on those checks already having occurred.
 pub(super) struct ActiveDeclaration {
     package_name: PackageName,
 }
@@ -81,13 +137,15 @@ pub(super) fn active_declaration(
             })
     };
 
+    // TODO(zsol): Layer the locked development dependency group into a cached environment so
+    // `uv check` can execute `ty` from non-registry sources instead of rejecting them.
     match source {
         Some(Source::Registry { .. }) => {}
         Some(source) => {
-            bail!(
-                "The active `ty` development dependency uses the non-registry source `{}`, but `uv check` can only install standalone `ty` releases by version; use a registry source, `--ty-version`, or the `TY` environment variable",
-                source_reference(source)
-            );
+            return Err(TyVersionError::UnsupportedDeclarationSource {
+                source_display: source.display().to_string(),
+            }
+            .into());
         }
         None => {
             if let Some(url) = active_requirements.iter().find_map(|requirement| {
@@ -97,24 +155,15 @@ pub(super) fn active_declaration(
                 };
                 Some(url)
             }) {
-                bail!(
-                    "The active `ty` development dependency uses the direct URL `{url}`, but `uv check` can only install standalone `ty` releases by version; use a registry requirement, `--ty-version`, or the `TY` environment variable"
-                );
+                return Err(TyVersionError::DirectUrl {
+                    url: url.to_string(),
+                }
+                .into());
             }
         }
     }
 
     Ok(Some(ActiveDeclaration { package_name }))
-}
-
-fn source_reference(source: &Source) -> String {
-    match source {
-        Source::Git { git, .. } => git.to_string(),
-        Source::Url { url, .. } => url.to_string(),
-        Source::Path { path, .. } => path.to_string(),
-        Source::Registry { index, .. } => index.to_string(),
-        Source::Workspace { workspace, .. } => format!("workspace = {workspace}"),
-    }
 }
 
 /// Select the exact registry version of `ty` reachable from the current project in the lockfile.
@@ -123,7 +172,7 @@ pub(super) fn version_from_lock(
     project: &VirtualProject,
     lock: &Lock,
     environment: &PythonEnvironment,
-) -> Result<String> {
+) -> Result<Version> {
     let marker_environment = environment.interpreter().resolver_marker_environment();
     let package = lock
         .find_dependency_group_package(
@@ -134,21 +183,15 @@ pub(super) fn version_from_lock(
         )
         .map_err(anyhow::Error::msg)?;
     let Some(package) = package else {
-        bail!(
-            "The active `ty` development dependency is not present in the lockfile for the selected Python environment; update `uv.lock`, or use `--ty-version` or the `TY` environment variable"
-        );
+        return Err(TyVersionError::MissingFromLock.into());
     };
     if package.index(project.workspace().install_path())?.is_none() {
-        bail!(
-            "The locked `ty` package uses a non-registry source, but `uv check` can only install standalone `ty` releases by version; use a registry source, `--ty-version`, or the `TY` environment variable"
-        );
+        return Err(TyVersionError::UnsupportedLockedSource.into());
     }
     let Some(version) = package.version() else {
-        bail!(
-            "The locked `ty` package has no version, but `uv check` can only install standalone `ty` releases by version; use a registry source, `--ty-version`, or the `TY` environment variable"
-        );
+        return Err(TyVersionError::MissingLockedVersion.into());
     };
-    Ok(version.to_string())
+    Ok(version.clone())
 }
 
 async fn write_workspace_metadata(mut stdin: ChildStdin, workspace_metadata: String) -> Result<()> {

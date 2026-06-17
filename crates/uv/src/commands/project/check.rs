@@ -34,6 +34,8 @@ use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
 
 mod ty;
 
+pub(crate) use ty::TyVersionError;
+
 /// Run project checks.
 #[expect(clippy::fn_params_excessive_bools)]
 pub(crate) async fn check(
@@ -252,9 +254,7 @@ pub(crate) async fn check(
             };
             if let Some(declaration) = ty_declaration.as_ref() {
                 let Some(lock) = lock.as_ref() else {
-                    anyhow::bail!(
-                        "The active `ty` development dependency requires an existing lockfile when `--no-sync` is used; update `uv.lock`, remove `--no-sync`, or use `--ty-version` or the `TY` environment variable"
-                    );
+                    return Err(TyVersionError::MissingLockfile.into());
                 };
                 locked_ty_version = Some(ty::version_from_lock(declaration, project, lock, &venv)?);
             }
@@ -408,7 +408,7 @@ pub(crate) async fn check(
         .map(|value| value.timestamp());
 
     ty::run(
-        ty_version.or(locked_ty_version),
+        ty_version.or_else(|| locked_ty_version.map(|version| version.to_string())),
         ty_path,
         &target_dir,
         venv_path.as_deref(),

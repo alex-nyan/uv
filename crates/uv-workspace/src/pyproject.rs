@@ -9,7 +9,7 @@
 #[cfg(feature = "schemars")]
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::fmt::Formatter;
+use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -1241,6 +1241,23 @@ pub enum Source {
     },
 }
 
+/// A concise, user-facing representation of a [`Source`].
+pub struct SourceDisplay<'a>(&'a Source);
+
+impl Display for SourceDisplay<'_> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Source::Git { git, .. } => git.fmt(formatter),
+            Source::Url { url, .. } => url.fmt(formatter),
+            Source::Path { path, .. } => path.fmt(formatter),
+            Source::Registry { index, .. } => index.fmt(formatter),
+            Source::Workspace { workspace, .. } => {
+                write!(formatter, "workspace = {workspace}")
+            }
+        }
+    }
+}
+
 /// A custom deserialization implementation for [`Source`]. This is roughly equivalent to
 /// `#[serde(untagged)]`, but provides more detailed error messages.
 impl<'de> Deserialize<'de> for Source {
@@ -1649,6 +1666,11 @@ impl uv_errors::Hint for SourceError {
 }
 
 impl Source {
+    /// Return a concise, user-facing representation of the source.
+    pub fn display(&self) -> SourceDisplay<'_> {
+        SourceDisplay(self)
+    }
+
     pub fn from_requirement(
         name: &PackageName,
         source: RequirementSource,
@@ -1989,5 +2011,34 @@ impl OptionsMetadata for BuildBackendSettingsSchema {
         Self: Sized + 'static,
     {
         BuildBackendSettings::metadata()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+
+    use super::Source;
+
+    #[test]
+    fn source_display() -> Result<()> {
+        for (source, expected) in [
+            (
+                r#"git = "https://example.com/project.git""#,
+                "https://example.com/project.git",
+            ),
+            (
+                r#"url = "https://example.com/project.whl""#,
+                "https://example.com/project.whl",
+            ),
+            (r#"path = "../project""#, "../project"),
+            (r#"index = "internal""#, "internal"),
+            (r"workspace = true", "workspace = true"),
+        ] {
+            let source = toml::from_str::<Source>(source)?;
+            assert_eq!(source.display().to_string(), expected);
+        }
+
+        Ok(())
     }
 }

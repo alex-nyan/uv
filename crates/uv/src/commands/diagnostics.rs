@@ -17,6 +17,7 @@ use crate::commands::pip;
 use crate::commands::pip::install::ExternallyManagedError;
 use crate::commands::pip::operations::ExtrasWithoutSourceError;
 use crate::commands::project::ProjectError;
+use crate::commands::project::check::TyVersionError;
 use crate::commands::project::remove::DependencyNotFoundError;
 use crate::commands::project::run::RecursionLimitError;
 use crate::commands::project::version::MissingProjectVersionError;
@@ -295,6 +296,7 @@ pub(crate) fn hints_for_error(err: &anyhow::Error) -> Hints<'static> {
         collect_hint::<DependencyNotFoundError>(cause, &mut hints);
         collect_hint::<ExtrasWithoutSourceError>(cause, &mut hints);
         collect_hint::<ProjectError>(cause, &mut hints);
+        collect_hint::<TyVersionError>(cause, &mut hints);
         collect_hint::<NoExecutablesError>(cause, &mut hints);
         collect_hint::<ExternallyManagedError>(cause, &mut hints);
         collect_hint::<MissingProjectVersionError>(cause, &mut hints);
