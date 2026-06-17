@@ -215,7 +215,7 @@ impl Tool {
 
     /// Return whether a standalone [`Lock`] was generated for this receipt.
     pub(crate) fn matches_lock(&self, lock: &Lock, directory: &Path) -> bool {
-        ResolverManifest::new(
+        let manifest = ResolverManifest::new(
             std::iter::empty::<PackageName>(),
             self.requirements.iter().cloned(),
             self.constraints.iter().cloned(),
@@ -224,9 +224,8 @@ impl Tool {
             self.build_constraints.iter().cloned(),
             std::iter::empty::<(GroupName, Vec<Requirement>)>(),
             std::iter::empty::<StaticMetadata>(),
-        )
-        .relative_to(directory)
-        .is_ok_and(|manifest| lock.matches_manifest(&manifest))
+        );
+        lock.matches_manifest_at(&manifest, directory)
     }
 
     /// Returns the TOML table for this tool.
