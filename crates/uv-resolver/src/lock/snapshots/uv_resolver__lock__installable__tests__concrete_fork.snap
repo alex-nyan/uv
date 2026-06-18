@@ -1,0 +1,13 @@
+---
+source: crates/uv-resolver/src/lock/installable.rs
+expression: graph_snapshot(&concrete_fork)
+---
+(
+    [
+        "forked==1.0.0 (install: true, hashes: sha256:2222222222222222222222222222222222222222222222222222222222222222)",
+        "root",
+    ],
+    [
+        "root --Prod--> forked==1.0.0 (install: true, hashes: sha256:2222222222222222222222222222222222222222222222222222222222222222)",
+    ],
+)

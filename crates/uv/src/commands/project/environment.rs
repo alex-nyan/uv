@@ -157,6 +157,41 @@ impl CachedEnvironment {
             .await?,
         );
 
+        Self::from_resolution(
+            &resolution,
+            build_constraints,
+            &interpreter,
+            settings,
+            client_builder,
+            state,
+            install,
+            installer_metadata,
+            concurrency,
+            cache,
+            printer,
+            preview,
+        )
+        .await
+    }
+
+    /// Get or create a [`CachedEnvironment`] from an existing [`Resolution`].
+    ///
+    /// This path performs environment reuse or creation and installation without invoking the
+    /// resolver. `interpreter` must be the interpreter used to produce the resolution.
+    pub(crate) async fn from_resolution(
+        resolution: &Resolution,
+        build_constraints: Constraints,
+        interpreter: &Interpreter,
+        settings: &ResolverInstallerSettings,
+        client_builder: &BaseClientBuilder<'_>,
+        state: &PlatformState,
+        install: Box<dyn InstallLogger>,
+        installer_metadata: bool,
+        concurrency: &Concurrency,
+        cache: &Cache,
+        printer: Printer,
+        preview: Preview,
+    ) -> Result<Self, ProjectError> {
         // Hash the resolution by hashing the generated lockfile.
         let resolution_hash = {
             let mut distributions = resolution
@@ -216,7 +251,7 @@ impl CachedEnvironment {
         let temp_dir = cache.venv_dir()?;
         let venv = uv_virtualenv::create_venv(
             temp_dir.path(),
-            interpreter,
+            interpreter.clone(),
             uv_virtualenv::Prompt::None,
             false,
             uv_virtualenv::OnExisting::Remove(uv_virtualenv::RemovalReason::TemporaryEnvironment),
@@ -227,7 +262,7 @@ impl CachedEnvironment {
 
         sync_environment(
             venv,
-            &resolution,
+            resolution,
             Modifications::Exact,
             build_constraints,
             settings.into(),
