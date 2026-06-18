@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uv docs homepage — proposed fix for #6264 (reserved space via aspect-ratio)</title>
+<style>
+  body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .md-content { max-width: 736px; margin: 0 auto; padding: 24px 16px 200px; }
+  h1 { font-size: 2rem; margin: 0 0 .5rem; }
+  h2 { font-size: 1.4rem; margin: 2rem 0 .75rem; }
+  p { line-height: 1.6; }
+  p[align="center"] { text-align: center; }
+  /* THE FIX: give the browser the intrinsic ratio so it reserves the box before the
+     image loads. width:100% + height:auto keeps it responsive; aspect-ratio holds the space. */
+  img.benchmark { max-width: 100%; width: 100%; height: auto; aspect-ratio: 1000 / 300; }
+  ul { line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="md-content">
+  <h1>uv</h1>
+  <p>An extremely fast Python package and project manager, written in Rust.</p>
+
+  <p align="center">
+    <img class="benchmark" alt="Shows a bar chart with benchmark results." src="benchmark.svg">
+  </p>
+
+  <p align="center"><i>Installing Trio's dependencies with a warm cache.</i></p>
+
+  <h2>Highlights</h2>
+  <ul>
+    <li>A single tool to replace <code>pip</code>, <code>pip-tools</code>, <code>pipx</code>, <code>poetry</code>, <code>pyenv</code>, <code>twine</code>, <code>virtualenv</code>, and more.</li>
+    <li>10-100x faster than <code>pip</code>.</li>
+    <li>Provides comprehensive project management, with a universal lockfile.</li>
+    <li>Runs scripts, with support for inline dependency metadata.</li>
+    <li>Installs and manages Python versions.</li>
+    <li>Runs and installs tools published as Python packages.</li>
+  </ul>
+</div>
+</body>
+</html>

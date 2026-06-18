@@ -1,0 +1,55 @@
+{
+  "issue": "astral-sh/uv#6264 — Fix reflow of index on image load",
+  "measuredAt_note": "CLS measured via the W3C Layout Instability API (the same metric Chrome DevTools / Lighthouse report).",
+  "conditions": {
+    "simulatedImageDelayMs": 1200,
+    "note": "Google Lighthouse rates CLS > 0.1 as 'needs improvement' and > 0.25 as 'poor'."
+  },
+  "resultsByViewport": {
+    "desktop": {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "buggy": {
+        "label": "buggy",
+        "file": "homepage-repro.html",
+        "imageHeightBeforeLoad": 0,
+        "imageHeightAfterLoad": 221,
+        "layoutShiftEvents": 1,
+        "cls": 0.046
+      },
+      "fixed": {
+        "label": "fixed",
+        "file": "homepage-fixed.html",
+        "imageHeightBeforeLoad": 221,
+        "imageHeightAfterLoad": 221,
+        "layoutShiftEvents": 0,
+        "cls": 0
+      }
+    },
+    "mobile": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "buggy": {
+        "label": "buggy",
+        "file": "homepage-repro.html",
+        "imageHeightBeforeLoad": 0,
+        "imageHeightAfterLoad": 107,
+        "layoutShiftEvents": 1,
+        "cls": 0.049
+      },
+      "fixed": {
+        "label": "fixed",
+        "file": "homepage-fixed.html",
+        "imageHeightBeforeLoad": 107,
+        "imageHeightAfterLoad": 107,
+        "layoutShiftEvents": 0,
+        "cls": 0
+      }
+    }
+  },
+  "verdict": "REPRODUCED: the dimensionless image shifts content downward on load (CLS > 0); reserving the aspect ratio removes the shift entirely (CLS = 0)."
+}
