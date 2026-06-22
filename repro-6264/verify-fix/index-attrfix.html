@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uv homepage — FIXED: benchmark img has width/height attributes (the shipped change)</title>
+<style>
+  body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .md-content { max-width: 736px; margin: 0 auto; padding: 24px 16px 200px; }
+  h1 { font-size: 2rem; margin: 0 0 .5rem; } h2 { font-size: 1.4rem; margin: 2rem 0 .75rem; }
+  p { line-height: 1.6; } p[align="center"] { text-align: center; }
+  /* Material default for content images — the live site already applies height:auto */
+  .md-content img { max-width: 100%; height: auto; }
+</style></head>
+<body><div class="md-content">
+  <h1>uv</h1>
+  <p>An extremely fast Python package and project manager, written in Rust.</p>
+  <!-- FIXED docs/index.md: width/height attributes reserve the box before load -->
+  <p align="center"><img alt="Shows a bar chart with benchmark results." width="496" height="107" src="benchmark-496x107.svg"></p>
+  <p align="center"><i>Installing Trio's dependencies with a warm cache.</i></p>
+  <h2>Highlights</h2>
+  <ul>
+    <li>A single tool to replace pip, pip-tools, pipx, poetry, pyenv, twine, virtualenv, and more.</li>
+    <li>10-100x faster than pip.</li>
+    <li>Provides comprehensive project management, with a universal lockfile.</li>
+    <li>Runs scripts, with support for inline dependency metadata.</li>
+  </ul>
+</div></body></html>

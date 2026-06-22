@@ -1,0 +1,30 @@
+{
+  "naturalRatio": 4.636,
+  "resultsByViewport": {
+    "desktop": {
+      "current_bug": {
+        "cls": 0.0104,
+        "shiftEvents": 1,
+        "renderedRatio": 4.636
+      },
+      "fixed": {
+        "cls": 0,
+        "shiftEvents": 0,
+        "renderedRatio": 4.636
+      }
+    },
+    "mobile": {
+      "current_bug": {
+        "cls": 0.0187,
+        "shiftEvents": 1,
+        "renderedRatio": 4.636
+      },
+      "fixed": {
+        "cls": 0,
+        "shiftEvents": 0,
+        "renderedRatio": 4.636
+      }
+    }
+  },
+  "verdict": "PASS: fix eliminates the layout shift (CLS -> 0, 0 shift events) and keeps the image proportional at every viewport."
+}
